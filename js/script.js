@@ -52,13 +52,26 @@ const closeReport = ({ target }) => {
     target.closest(".report__close") ||
     (!target.closest(".report") && target !== financeReport)
   ) {
-    report.classList.remove("report__open");
+    gsap.to(report, {
+      opacity: 0,
+      scale: 0,
+      duration: 0.7,
+      ease: "power3.in",
+    });
     document.removeEventListener("click", closeReport);
   }
 };
 
 const openReport = () => {
-  report.classList.add("report__open");
+  report.style.visibility = "visible";
+
+  gsap.to(report, {
+    opacity: 1,
+    scale: 1,
+    duration: 0.7,
+    ease: "power3.out",
+  });
+
   document.addEventListener("click", closeReport);
 };
 
@@ -94,9 +107,17 @@ const renderReport = (data) => {
 };
 
 financeReport.addEventListener("click", async () => {
-  openReport();
+  const textContent = financeReport.textContent;
+  financeReport.textContent = "Загрузка...";
+  financeReport.disabled = true;
+
   const data = await getData("/test");
+
+  financeReport.textContent = textContent;
+  financeReport.disabled = false;
+
   renderReport(data);
+  openReport();
 });
 
 reportDates.addEventListener("submit", async (e) => {
