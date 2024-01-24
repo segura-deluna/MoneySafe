@@ -1,6 +1,8 @@
 import { OverlayScrollbars } from "./overlayscrollbars.esm.min.js";
-import { getData } from "./servise.js";
+import { delData, getData } from "./servise.js";
 import { reformatDate } from "./helpers.js";
+import { storage } from "./storage.js";
+import { financeControl } from "./financeControl.js";
 
 const typeOperation = {
   income: "доход",
@@ -10,6 +12,7 @@ const typeOperation = {
 const financeReport = document.querySelector(".finance__report");
 const report = document.querySelector(".report");
 const reportOperationList = document.querySelector(".report__operation-list");
+const reportTable = document.querySelector(".report__table");
 const reportDates = document.querySelector(".report__dates");
 
 OverlayScrollbars(report, {});
@@ -46,7 +49,7 @@ const renderReport = (data) => {
   reportOperationList.textContent = "";
 
   const reportRows = data.map(
-    ({ category, amount, description, date, type }) => {
+    ({ category, amount, description, date, type, id }) => {
       const reportRow = document.createElement("tr");
       reportRow.classList.add("report__row");
 
@@ -58,7 +61,7 @@ const renderReport = (data) => {
                 <td class="report__cell">${typeOperation[type]}</td>
                 <td class="report__action-cell">
                   <button
-                    class="report__button report__button_table">&#10006;</button>
+                    class="report__button report__button_table" data-del=${id}>&#10006;</button>
                 </td>
     `;
       return reportRow;
@@ -69,12 +72,54 @@ const renderReport = (data) => {
 };
 
 export const reportControl = () => {
+  reportTable.addEventListener("click", async ({ target }) => {
+    const buttonDel = target.closest(".report__button_table");
+    if (buttonDel) {
+      await delData(`/finance/${buttonDel.dataset.del}`);
+
+      const reportRow = buttonDel.closest(".report__row");
+      reportRow.remove();
+      financeControl();
+      //!TODO clearChart();
+    }
+
+    const targetSort = target.closest("[data-sort]");
+    if (targetSort) {
+      const sortField = targetSort.dataset.sort;
+
+      renderReport(
+        [...storage.data].sort((a, b) => {
+          if (targetSort.dataset.dir === "up") {
+            [a, b] = [b, a];
+          }
+
+          if (sortField === "amount") {
+            return parseFloat(a[sortField]) < parseFloat(b[sortField]) ? -1 : 1;
+          }
+          return a[sortField] < b[sortField] ? -1 : 1;
+        }),
+      );
+      if (targetSort.dataset.dir === "up") {
+        targetSort.dataset.dir = "down";
+      } else {
+        targetSort.dataset.dir = "up";
+      }
+    }
+
+    const targetDel = target.closest("[data-del]");
+    if (targetDel) {
+      console.log(targetDel.dataset.del);
+    }
+  });
+
   financeReport.addEventListener("click", async () => {
     const textContent = financeReport.textContent;
+
     financeReport.textContent = "Загрузка...";
     financeReport.disabled = true;
 
     const data = await getData("/finance");
+    storage.data = data;
 
     financeReport.textContent = textContent;
     financeReport.disabled = false;
