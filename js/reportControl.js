@@ -80,7 +80,7 @@ export const reportControl = () => {
       const reportRow = buttonDel.closest(".report__row");
       reportRow.remove();
       financeControl();
-      //!TODO clearChart();
+      //TODO: clearChart();
     }
 
     const targetSort = target.closest("[data-sort]");
